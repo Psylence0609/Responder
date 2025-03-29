@@ -4,6 +4,8 @@ import numpy as np
 import face_recognition
 from collections import Counter
 import time
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 class FaceIdentifier:
     def __init__(self, known_faces_folder='known_faces'):
@@ -12,21 +14,74 @@ class FaceIdentifier:
         self.known_faces_folder = known_faces_folder
         self.load_known_faces()
 
-    def load_known_faces(self):
-        # Load known faces from the folder
-        for filename in os.listdir(self.known_faces_folder):
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image_path = os.path.join(self.known_faces_folder, filename)
-                image = face_recognition.load_image_file(image_path)
-                encoding = face_recognition.face_encodings(image)
-                
-                if len(encoding) > 0:
-                    self.known_face_encodings.append(encoding[0])
-                    self.known_face_names.append(os.path.splitext(filename)[0])
-                else:
-                    print(f"No face found in {filename}")
+    def load_known_faces_from_s3(self):
+        """
+        Retrieves images from S3, converts them to face encodings, and stores them.
+        """
+        image_extensions = ['.png', '.jpg', '.jpeg']
+        try:
+            s3 = boto3.client('s3')
+            response = s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
 
-        print(f"Loaded {len(self.known_face_names)} known faces")
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    key = obj['Key']
+                    if any(key.lower().endswith(ext) for ext in image_extensions):
+                        try:
+                            # Download the image from S3 to memory
+                            image_object = s3.get_object(Bucket=self.bucket_name, Key=key)
+                            image_content = image_object['Body'].read()
+
+                            # Load image from memory
+                            image = face_recognition.load_image_file(image_content)
+                            encoding = face_recognition.face_encodings(image)
+
+                            if len(encoding) > 0:
+                                self.known_face_encodings.append(encoding[0])
+                                # Extract name from the key (filename)
+                                filename = key.split('/')[-1]  # Get the filename part
+                                name = os.path.splitext(filename)[0]
+                                self.known_face_names.append(name)
+                            else:
+                                print(f"No face found in {key}")
+                        except Exception as e:
+                            print(f"Error processing image {key}: {e}")
+
+            # Handle paginated results
+            while response['IsTruncated']:
+                continuation_token = response['NextContinuationToken']
+                response = s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix, ContinuationToken=continuation_token)
+                if 'Contents' in response:
+                    for obj in response['Contents']:
+                        key = obj['Key']
+                        if any(key.lower().endswith(ext) for ext in image_extensions):
+                            try:
+                                # Download the image from S3 to memory
+                                image_object = s3.get_object(Bucket=self.bucket_name, Key=key)
+                                image_content = image_object['Body'].read()
+
+                                # Load image from memory
+                                image = face_recognition.load_image_file(image_content)
+                                encoding = face_recognition.face_encodings(image)
+
+                                if len(encoding) > 0:
+                                    self.known_face_encodings.append(encoding[0])
+                                    # Extract name from the key (filename)
+                                    filename = key.split('/')[-1]  # Get the filename part
+                                    name = os.path.splitext(filename)[0]
+                                    self.known_face_names.append(name)
+                                else:
+                                    print(f"No face found in {key}")
+                            except Exception as e:
+                                print(f"Error processing image {key}: {e}")
+
+            print(f"Loaded {len(self.known_face_names)} known faces from S3")
+
+        except NoCredentialsError:
+            print("Error: AWS credentials not found. Please configure your AWS credentials.")
+        except Exception as e:
+            print(f"An error occurred while accessing S3: {e}")
+
 
     def run_recognition(self):
         """Runs face recognition for 10 seconds and returns the most frequent match"""
