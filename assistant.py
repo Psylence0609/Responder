@@ -4,7 +4,7 @@ import time
 import numpy as np
 import soundfile as sf
 import sounddevice as sd
-from typing import Optional
+from typing import Optional, Dict
 from langchain_groq import ChatGroq
 from Listener import WhisperListener
 from face_recog import FaceIdentifier
@@ -13,10 +13,6 @@ from deepgram_call import synthesize_audio
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, AIMessage
 from langchain.memory import ConversationBufferWindowMemory
-
-
-def summarize(chat:str) -> str:
-
 
 class FirstResponderAssistant:
     """
@@ -107,6 +103,35 @@ class FirstResponderAssistant:
         response = self.llm.invoke(formatted_prompt)
         return response.content
 
+    def summarize(self) -> Optional[str]:
+        """
+            Summarizes the given chat history to provide key information for a doctor.
+
+            Args:
+                chat (Dict[str, str]): A dictionary containing the chat history with key 'history'.
+
+            Returns:
+                Optional[str]: A summarized version of the chat, or None if an error occurs.
+            """
+    
+        try:
+            chat_history = self.memory.load_memory_variables({}).get("history", None)
+            if not chat_history:
+                print("No chat history available for summarization.")
+                return None
+
+            prompt = (
+                "Summarize the following patient-agent conversation, highlighting key things:\n\n"
+                f"{chat_history}\n\n"
+                "Summary:"
+            )
+            response = self.llm.invoke(prompt)
+            return response.content.strip()
+        
+        except Exception as e:
+            print(f"Error summarizing chat: {e}")
+            return None
+
     def start_assistance_flow(self) -> None:
         """
         Main loop for assisting the patient:
@@ -150,8 +175,8 @@ class FirstResponderAssistant:
 
                 # Save to memory and generate next question
                 self.memory.save_context(
-                    {"input": user_input},
-                    {"output": response}
+                    {"output": response},
+                    {"input": user_input}
                 )
                 question_count -= 1
                 response = self._get_llm_response(user_input, question_count)
@@ -164,9 +189,9 @@ class FirstResponderAssistant:
                 synthesize_audio("Thank you for your time, I will report your symptoms to the doctor.", audio_file)
                 self._play_audio(audio_file)
             
-
-            
             print("Session complete. Handoff to doctor.")
             
         finally:
+            summary = self.summarize(self.memory.load_memory_variables({}))
+            
             cv2.destroyAllWindows()
