@@ -161,7 +161,7 @@ class FirstResponderAssistant:
                 audio_file = os.path.join(AUDIO_DIR, f"response_{int(time.time())}.wav")
                 synthesize_audio(response, audio_file)
                 print(f"Responder: {response}")
-                messages.chat_message("Responder").write(response)
+                messages.chat_message("Responder").write(f"Responder: {response}")
                 self._play_audio(audio_file)
                 self._delete_file(audio_file)
 
@@ -174,7 +174,7 @@ class FirstResponderAssistant:
                 user_input = self.listener.transcribe_audio(audio).strip()
                 chat += "Patient: " + user_input + "\n"
                 print(f"Patient: {user_input}")
-                messages.chat_message("Patient").write(user_input)
+                messages.chat_message("Patient").write(f"Patient: {user_input}")
 
                 if "quit" in user_input.lower():
                     print("Conversation terminated by patient.")

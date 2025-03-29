@@ -1,7 +1,11 @@
 import streamlit as st
 
 
+
+
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+
+
 
 
 st.markdown(
@@ -13,11 +17,12 @@ st.markdown(
            margin: 0;
            padding: 0;
            overflow: hidden;
+            background: radial-gradient(circle, rgba(20, 20, 40, 1) 0%, rgba(10, 10, 20, 1) 100%); /* Radial Gradient Background */
            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
            display: flex;
            justify-content: center;
            align-items: center;
-           background: radial-gradient(circle, rgba(2,0,36,1) 0%, rgba(126,67,182,1) 64%, rgba(167,129,199,1) 94%);
+       }
 
 
 
@@ -42,12 +47,12 @@ st.markdown(
        .title {
             font-size: 4rem;
             font-weight: 700;
-            background: linear-gradient(90deg, rgba(2,0,36,1) 0%, rgba(221,209,209,1) 43%, rgba(166,214,212,1) 100%);
+            background: linear-gradient(to right, #5196f4, #8a68d4, #d67687);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0 0 1rem 0;
-            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.2);
         }
+
 
        .description {
            font-size: 1.125rem;
@@ -112,8 +117,7 @@ st.markdown(
    <div class="content">
        <div class="title">Dr. Quick</div>
        <div class="description">
-           Experience the next generation of human-computer interaction<br>
-           with our audio-visual interface.
+           Empowering healthcare professionals, simplifying patient care.
        </div>
    </div>
    """,
@@ -121,13 +125,8 @@ st.markdown(
 )
     #    <button class="btn-primary">Let's Get Started →</button>
 
-col1, col2, col3 = st.columns([0.4,0.4,0.1])
-with col1:
-    st.empty()  # Or add minimal content here
 
-with col2:
-    if st.button("Let's Get Started →"):
-        st.switch_page("pages/test.py")
-
+col1, col2, col3, col4, col5 = st.columns([0.1, 0.1, 0.1, 0.1, 0.1])
 with col3:
-    st.empty() 
+    if st.button("Talk to me →"):
+        st.switch_page("pages/test.py")
