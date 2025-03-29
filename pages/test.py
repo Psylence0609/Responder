@@ -1,4 +1,7 @@
 import streamlit as st
+from assistant import FirstResponderAssistant
 
+st.title("Patient Intake Assistant")
 
-st.title("Notion Task Manager")
+assistant = FirstResponderAssistant()
+assistant.start_assistance_flow()
