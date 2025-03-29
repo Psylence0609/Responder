@@ -146,8 +146,9 @@ class FirstResponderAssistant:
         chat = ""
         try:
             self.current_patient = self.face_identifier.run_recognition()
-            print(f"Detected patient: {self.current_patient}")
-            st.write(f"Detected patient: {self.current_patient}")
+            # print(f"Detected patient: {self.current_patient}")
+            messages = st.container(height=300)
+            messages.chat_message("Responder").write(f"Detected patient: {self.current_patient}")
             
             # Start the conversation
             print("Starting conversation...")
@@ -160,7 +161,7 @@ class FirstResponderAssistant:
                 audio_file = os.path.join(AUDIO_DIR, f"response_{int(time.time())}.wav")
                 synthesize_audio(response, audio_file)
                 print(f"Responder: {response}")
-                st.write(f"Responder: {response}")
+                messages.chat_message("Responder").write(response)
                 self._play_audio(audio_file)
                 self._delete_file(audio_file)
 
@@ -173,7 +174,7 @@ class FirstResponderAssistant:
                 user_input = self.listener.transcribe_audio(audio).strip()
                 chat += "Patient: " + user_input + "\n"
                 print(f"Patient: {user_input}")
-                st.write(f"Patient: {user_input}")
+                messages.chat_message("Patient").write(user_input)
 
                 if "quit" in user_input.lower():
                     print("Conversation terminated by patient.")
