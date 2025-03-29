@@ -8,7 +8,6 @@ class NotionDB:
         self.parent_page_id = PAGE_ID
         self.database_title = database_title
         self.database_id = self.get_or_create_database()
-
     def get_or_create_database(self):
         # Check if database already exists in the parent page
         children = self.notion.blocks.children.list(self.parent_page_id)['results']
