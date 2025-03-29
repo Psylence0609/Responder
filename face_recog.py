@@ -6,13 +6,16 @@ from collections import Counter
 import time
 import boto3
 from botocore.exceptions import NoCredentialsError
+from config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION_NAME
 
 class FaceIdentifier:
     def __init__(self, known_faces_folder='known_faces'):
         self.known_face_encodings = []
         self.known_face_names = []
         self.known_faces_folder = known_faces_folder
-        self.load_known_faces()
+        self.bucket_name = 'reponder'
+        self.load_known_faces_from_s3()
+
 
     def load_known_faces_from_s3(self):
         """
@@ -20,20 +23,26 @@ class FaceIdentifier:
         """
         image_extensions = ['.png', '.jpg', '.jpeg']
         try:
-            s3 = boto3.client('s3')
-            response = s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.prefix)
-
+            s3 = boto3.client(
+                's3',
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                region_name=AWS_REGION_NAME
+            )
+            response = s3.list_objects_v2(Bucket=self.bucket_name)
+            print("Response:", response)
             if 'Contents' in response:
                 for obj in response['Contents']:
                     key = obj['Key']
                     if any(key.lower().endswith(ext) for ext in image_extensions):
                         try:
                             # Download the image from S3 to memory
-                            image_object = s3.get_object(Bucket=self.bucket_name, Key=key)
-                            image_content = image_object['Body'].read()
+                            local_file_path = os.path.join('known_faces',key)
+                            image_object = s3.download_file(self.bucket_name, key, local_file_path)
+                            # image_content = image_object['Body'].read()
 
                             # Load image from memory
-                            image = face_recognition.load_image_file(image_content)
+                            image = face_recognition.load_image_file(local_file_path)
                             encoding = face_recognition.face_encodings(image)
 
                             if len(encoding) > 0:
@@ -56,12 +65,13 @@ class FaceIdentifier:
                         key = obj['Key']
                         if any(key.lower().endswith(ext) for ext in image_extensions):
                             try:
+                                local_file_path = os.path.join('known_faces',key)
                                 # Download the image from S3 to memory
-                                image_object = s3.get_object(Bucket=self.bucket_name, Key=key)
-                                image_content = image_object['Body'].read()
+                                image_object = s3.download_file(self.bucket_name, key, local_file_path)
+                                # image_content = image_object['Body'].read()
 
                                 # Load image from memory
-                                image = face_recognition.load_image_file(image_content)
+                                image = face_recognition.load_image_file(local_file_path)
                                 encoding = face_recognition.face_encodings(image)
 
                                 if len(encoding) > 0:
@@ -80,7 +90,7 @@ class FaceIdentifier:
         except NoCredentialsError:
             print("Error: AWS credentials not found. Please configure your AWS credentials.")
         except Exception as e:
-            print(f"An error occurred while accessing S3: {e}")
+            print(f"An error occurred while accessing S3: {e.__traceback__}")
 
 
     def run_recognition(self):
@@ -118,8 +128,9 @@ class FaceIdentifier:
                     detected_names.append(name)
 
                 # Draw bounding box and label
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-                cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
+                if name:
+                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+                    cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
 
             cv2.imshow('Face Identification', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):

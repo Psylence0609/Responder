@@ -20,10 +20,10 @@ class NotionDB:
 
         # If not found, create a new database
         properties = {
-            'Name': {'title': {}},
+            'Patient Name': {'title': {}},
             'Description': {'rich_text': {}},
             'Date': {'date': {}},
-            'Image': {'files': {}},  # Add a Files property for the image
+            'Time': {'rich_text': {}}  # Add a Files property for the image
         }
 
         database = self.notion.databases.create(
@@ -59,9 +59,13 @@ class NotionDB:
                 }
             },
             'Time': {
-                'time': {
-                    'start': datetime.now().strftime("%H:%M:%S")
-                }
+                'rich_text': [
+                    {
+                        'text': {
+                            'content': datetime.now().strftime("%H:%M:%S")
+                        }
+                    }
+                ]
             }
         }
 

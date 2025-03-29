@@ -4,11 +4,13 @@ import time
 import numpy as np
 import soundfile as sf
 import sounddevice as sd
+from Notion import NotionDB
+from datetime import datetime
 from typing import Optional, Dict
 from langchain_groq import ChatGroq
 from Listener import WhisperListener
 from face_recog import FaceIdentifier
-from config import GROQ_KEY, AUDIO_DIR
+from config import GROQ_KEY, AUDIO_DIR,DB_NAME
 from deepgram_call import synthesize_audio
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, AIMessage
@@ -192,6 +194,13 @@ class FirstResponderAssistant:
             print("Session complete. Handoff to doctor.")
             
         finally:
-            summary = self.summarize(self.memory.load_memory_variables({}))
+            summary = self.summarize()
+            if summary:
+                notion_obj = NotionDB(DB_NAME)
+                notion_obj.add_entry(
+                    name=self.current_patient,
+                    description=summary, 
+                    date = datetime.now().strftime("%Y-%m-%d")
+                )
             
             cv2.destroyAllWindows()
