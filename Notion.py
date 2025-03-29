@@ -35,7 +35,7 @@ class NotionDB:
 
     def add_entry(self, name, description, date, image_url=None):
         properties = {
-            'Name': {
+            'Patient Name': {
                 'title': [
                     {
                         'text': {
@@ -58,6 +58,11 @@ class NotionDB:
                     'start': date
                 }
             },
+            'Time': {
+                'time': {
+                    'start': datetime.now().strftime("%H:%M:%S")
+                }
+            }
         }
 
         # Add image to properties if image_url is provided
