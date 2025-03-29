@@ -1,10 +1,13 @@
 # Build4Good 2025: AI-Powered Patient Intake System
+![image](https://github.com/user-attachments/assets/34439661-ae84-4053-b4a7-0297a0258497)
 
 ## Project Overview
 
 This project, developed for the Build4Good 2025 Hackathon, aims to streamline the patient intake process in hospitals by leveraging an AI-powered voice bot. It provides a conversational interface for patients arriving to describe their health concerns. The AI bot conducts a structured question-and-answer session, maintains a history of the conversation, and generates a concise summary. This summary, along with the patient's information and visit date, is then automatically added to a Notion database accessible by the doctor.
 
 **Key Features:**
+
+![image](https://github.com/user-attachments/assets/aad24035-ec6e-47dd-a075-ffb5e89c5b7a)
 
 * **Voice-Based Interaction:** Natural language voice input for easy patient interaction.
 * **Groq LLM Integration:** Real-time, high-performance language processing using Groq's infrastructure (Access to LLama 3.3, Qwen 2.5, etc).
