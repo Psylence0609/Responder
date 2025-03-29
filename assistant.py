@@ -140,7 +140,7 @@ class FirstResponderAssistant:
         - Generates and plays LLM-generated responses.
         """
         print("Starting first responder assistant...")
-
+        chat = ""
         try:
             self.current_patient = self.face_identifier.run_recognition()
             print(f"Detected patient: {self.current_patient}")
@@ -152,6 +152,7 @@ class FirstResponderAssistant:
 
             while question_count > 0:
                 # Generate and play audio
+                chat += "Responder: " + response + "\n"
                 audio_file = os.path.join(AUDIO_DIR, f"response_{int(time.time())}.wav")
                 synthesize_audio(response, audio_file)
                 print(f"Responder: {response}")
@@ -165,6 +166,7 @@ class FirstResponderAssistant:
                 print("Listening...")
                 audio = self.listener.record_audio(self.audio_duration)
                 user_input = self.listener.transcribe_audio(audio).strip()
+                chat += "Patient: " + user_input + "\n"
                 print(f"Patient: {user_input}")
 
                 if "quit" in user_input.lower():
@@ -184,7 +186,7 @@ class FirstResponderAssistant:
             if os.path.exists(audio_file):
                 self._play_audio(audio_file)
             else:
-                synthesize_audio("Thank you for your time, I will hand over to the appropriate doctor.", audio_file)
+                synthesize_audio("Thank you for your time, I will report your symptoms to the doctor.", audio_file)
                 self._play_audio(audio_file)
             
             print("Session complete. Handoff to doctor.")
