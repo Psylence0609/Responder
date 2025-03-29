@@ -1,21 +1,28 @@
 import os
+import cv2
 import time
+import numpy as np
+import soundfile as sf
+import sounddevice as sd
 from typing import Optional
 from langchain_groq import ChatGroq
+from Listener import WhisperListener
+from face_recog import FaceIdentifier
+from config import GROQ_KEY, AUDIO_DIR
+from deepgram_call import synthesize_audio
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, AIMessage
 from langchain.memory import ConversationBufferWindowMemory
-from deepgram_call import synthesize_audio
-from Listener import WhisperListener
-from face_recog import FaceIdentifier
-import sounddevice as sd
-import soundfile as sf
-import numpy as np
-import cv2
 
 
 class FirstResponderAssistant:
-    def __init__(self):
+    """
+    A hospital responder system that:
+    1. Detects patient identity through face recognition.
+    2. Collects patient symptoms via natural conversation using LLM.
+    3. Assigns the patient to the appropriate doctor based on symptoms.
+    """
+    def __init__(self) -> None:
         # Initialize components
         self.face_identifier = FaceIdentifier()
         self.listener = WhisperListener(model_size="base")
@@ -33,36 +40,42 @@ class FirstResponderAssistant:
         Ask one question at a time. 
         Prioritize assessing:
         - The patient's symptoms
+        - Medical history (if available)
+        - Emergency needs
         Keep responses brief and to the point.
-        Important Points to remember:
-        1. Refer to the previous questions asked. DO NOT ask the same question again .
-        2. Ask questions based on the patient's response.
-        3. If you do not understand the patient's response, ask them to repeat or clarify.
-        4. IF you feel that you have asked enough questions end the conversation by respoining with "Thank you for your time. I will now hand you over to the required person." """
         
+        Important Points to remember:
+        1. Refer to previous questions asked. DO NOT ask the same question again.
+        2. Adapt questions based on the patient's responses.
+        3. If the patient’s response is unclear, ask them to repeat or clarify.
+        4. If you’ve gathered enough information, close the conversation politely and hand over to the appropriate doctor.
+        """
+
         self.prompt_template = PromptTemplate(
-            input_variables=["history", "input", "patient_name"],
+            input_variables=["history", "input", "patient_name", "question_count"],
             template=self.system_prompt + """
             Current conversation:
             {history}
             Patient: {input}
-            Important: You have only {question_count} questions left to ask. Please ask relevant ones to gather maximum information within the limit.
+            Important: You have {question_count} questions left. Please ask the most important ones to maximize information.
             Responder:"""
         )
 
-    def _setup_llm(self):
+    def _setup_llm(self) -> ChatGroq:
+        """Sets up the LLM model for generating responses."""
         return ChatGroq(
             temperature=0.3,
-            groq_api_key=os.getenv("GROQ_API_KEY"),
+            groq_api_key=GROQ_KEY,
             model_name="llama-3.3-70b-versatile"
         )
     
-    def delete_file(file_path):
+    def _delete_file(self, file_path: str) -> None:
+        """Deletes a file if it exists."""
         if os.path.exists(file_path):
             os.remove(file_path)
             
-    def _play_audio(self, filename):
-        """Play generated audio response"""
+    def _play_audio(self, filename: str) -> None:
+        """Plays an audio file."""
         try:
             data, fs = sf.read(filename)
             sd.play(data, fs)
@@ -71,66 +84,82 @@ class FirstResponderAssistant:
             print(f"Error playing audio: {e}")
 
     def _get_llm_response(self, user_input: str, question_count: int) -> str:
-        """Get response from LLM with conversation history"""
-        # Format conversation history
-        history = self.memory.load_memory_variables({})["history"]
+        """
+        Generates a response from the LLM model based on the conversation history.
         
-        # Format prompt
+        Args:
+            user_input (str): The patient's input.
+            question_count (int): Number of remaining questions.
+        
+        Returns:
+            str: Generated LLM response.
+        """
+        history = self.memory.load_memory_variables({}).get("history", "")
         formatted_prompt = self.prompt_template.format(
             history=history,
             input=user_input,
             patient_name=self.current_patient or "Patient",
             question_count=question_count
         )
-        
-        # Get response
         response = self.llm.invoke(formatted_prompt)
         return response.content
 
-    def start_assistance_flow(self):
-        """Main loop for first responder assistance"""
+    def start_assistance_flow(self) -> None:
+        """
+        Main loop for assisting the patient:
+        - Detects face and identifies patient.
+        - Collects symptoms and medical details.
+        - Generates and plays LLM-generated responses.
+        """
         print("Starting first responder assistant...")
-        
-        # Start face recognition
-        
+
         try:
             self.current_patient = self.face_identifier.run_recognition()
             print(f"Detected patient: {self.current_patient}")
-            # Start conversation loop
+
+            # Start the conversation
             print("Starting conversation...")
-            response = self._get_llm_response("First responder has arrived. How can I help you?", question_count=13)
-            print(f"Responder: {response}")
-            question_count = 13
-            while question_count:
+            question_count = 5
+            response = f"Hi {self.current_patient}!, How can I help you today?"
+
+            while question_count > 0:
                 # Generate and play audio
-                audio_file = f"response_{int(time.time())}.wav"
+                audio_file = os.path.join(AUDIO_DIR, f"response_{int(time.time())}.wav")
                 synthesize_audio(response, audio_file)
+                print(f"Responder: {response}")
                 self._play_audio(audio_file)
+                self._delete_file(audio_file)
 
                 if "Thank you for your time" in response:
                     break
-                # Listen for patient response
+
+                # Listen for patient's response
                 print("Listening...")
                 audio = self.listener.record_audio(self.audio_duration)
-                user_input = self.listener.transcribe_audio(audio)
+                user_input = self.listener.transcribe_audio(audio).strip()
                 print(f"Patient: {user_input}")
-                if question_count == 1:
-                    response += " Thank you for your time. I will now hand you over to the required person."
-                    audio_file = f"response_{int(time.time())}.wav"
-                    synthesize_audio(response, audio_file)
-                    self._play_audio(audio_file)
-                    break
+
                 if "quit" in user_input.lower():
+                    print("Conversation terminated by patient.")
                     break
-                
-                # Get and store response
+
+                # Save to memory and generate next question
                 self.memory.save_context(
                     {"input": user_input},
                     {"output": response}
                 )
+                question_count -= 1
                 response = self._get_llm_response(user_input, question_count)
-                print(f"Responder: {response}")
-                question_count-=1
-                
+                # print(f"Responder: {response}")
+            
+            audio_file = os.path.join(AUDIO_DIR, f"final_response.wav")
+            if os.path.exists(audio_file):
+                self._play_audio(audio_file)
+            else:
+                synthesize_audio("Thank you for your time, I will hand over to the appropriate doctor.", audio_file)
+                self._play_audio(audio_file)
+            
+            print("Session complete. Handoff to doctor.")
+            
         finally:
             cv2.destroyAllWindows()

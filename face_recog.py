@@ -34,7 +34,7 @@ class FaceIdentifier:
         start_time = time.time()
         detected_names = []
 
-        while time.time() - start_time < 10:  # Run for 10 seconds
+        while time.time() - start_time < 5:  # Run for 10 seconds
             ret, frame = video_capture.read()
             if not ret:
                 break
