@@ -13,18 +13,21 @@ st.markdown(
            margin: 0;
            padding: 0;
            overflow: hidden;
-           background: black;
            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
            display: flex;
            justify-content: center;
            align-items: center;
-       }
+           background: radial-gradient(circle, rgba(2,0,36,1) 0%, rgba(126,67,182,1) 64%, rgba(167,129,199,1) 94%);
+
+
 
 
        /* Hide Streamlit UI elements */
        #MainMenu, header, footer, .stAppHeader {
            display: none;
        }
+
+
 
 
        .content {
@@ -34,13 +37,16 @@ st.markdown(
        }
 
 
+
+
        .title {
             font-size: 4rem;
             font-weight: 700;
-            background: linear-gradient(45deg, #7e1f94, #9b59b6, #6a0dad);
+            background: linear-gradient(90deg, rgba(2,0,36,1) 0%, rgba(221,209,209,1) 43%, rgba(166,214,212,1) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0 0 1rem 0;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.2);
         }
 
        .description {
@@ -48,6 +54,8 @@ st.markdown(
            color: #cfcfcf;
            margin: 0 0 2rem 0;
        }
+
+
 
 
        .btn-primary {
@@ -65,11 +73,13 @@ st.markdown(
            
        }
 
+
        .btn-primary:hover {
            background: linear-gradient(90deg, #8a5dd1, #a785f7);
            box-shadow: 0 6px 16px rgba(167, 133, 247, 0.4);
            transform: translateY(-2px);
        }
+
 
        @keyframes glow {
             0% {
@@ -83,6 +93,7 @@ st.markdown(
             }
         }
 
+
        @keyframes pulse {
            0% {
                transform: scale(1);
@@ -94,6 +105,8 @@ st.markdown(
                transform: scale(1);
            }
    </style>
+
+
 
 
    <div class="content">
@@ -109,6 +122,12 @@ st.markdown(
     #    <button class="btn-primary">Let's Get Started →</button>
 
 col1, col2, col3 = st.columns([0.4,0.4,0.1])
+with col1:
+    st.empty()  # Or add minimal content here
+
 with col2:
     if st.button("Let's Get Started →"):
         st.switch_page("pages/test.py")
+
+with col3:
+    st.empty() 
