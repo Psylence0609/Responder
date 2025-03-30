@@ -142,6 +142,6 @@ class FaceIdentifier:
 
         # Return the most common detected name
         if detected_names:
-            # st.image(frame, caption='Face Identification', use_container_width=True)
+            st.image(frame, caption='Face Identification', use_container_width=True)
             return Counter(detected_names).most_common(1)[0][0]
         return "Unknown"

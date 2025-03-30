@@ -152,7 +152,7 @@ class FirstResponderAssistant:
             
             # Start the conversation
             print("Starting conversation...")
-            question_count = 5
+            question_count = 7
             response = f"Hi {self.current_patient}!, How can I help you today?"
 
             while question_count > 0:
